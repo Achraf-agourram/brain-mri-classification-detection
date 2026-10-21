@@ -1,26 +1,18 @@
 from pathlib import Path
-import random
-from PIL import Image, ImageDraw
-import matplotlib.pyplot as plt
+from collections import Counter
+import math
+from PIL import Image
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT_DIR / "data" / "raw"
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 CLASS_NAMES = ["Glioma", "Meningioma", "No Tumor", "Pituitary"]
-SAMPLE_COUNT = 12
 TOLERANCE = 1e-5
 
 
-def get_image_paths():
-    return [
-        path for path in DATA_DIR.rglob("*")
-        if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
-    ]
-
-
-def get_annotation_path(image_path):
-    return image_path.parent.parent / "labels" / f"{image_path.stem}.txt"
+def get_image_key(path):
+    return path.parent.parent.resolve(), path.stem.casefold()
 
 
 def get_label_paths():
@@ -30,41 +22,17 @@ def get_label_paths():
     ]
 
 
-image_paths = get_image_paths()
-label_paths = get_label_paths()
+def validate_label_file(path):
+    errors = []
+    class_ids = set()
+    box_count = 0
 
-image_keys = {
-    (path.parent.parent, path.stem)
-    for path in image_paths
-}
-
-label_keys = {
-    (path.parent.parent, path.stem)
-    for path in label_paths
-}
-
-corrupted_images = []
-missing_annotations = []
-orphan_annotations = []
-invalid_annotations = []
-
-for image_path in image_paths:
-    try:
-        with Image.open(image_path) as image:
-            image.verify()
-    except Exception:
-        corrupted_images.append(str(image_path))
-        continue
-
-    annotation_path = get_annotation_path(image_path)
-
-    if not annotation_path.is_file():
-        missing_annotations.append(str(image_path))
-        continue
-
-    with open(annotation_path, "r", encoding="utf-8") as file:
+    with open(path, "r", encoding="utf-8") as file:
         for line_number, line in enumerate(file, start=1):
             values = line.split()
+
+            if not values:
+                continue
 
             try:
                 if len(values) != 5:
@@ -72,7 +40,7 @@ for image_path in image_paths:
 
                 class_value = float(values[0])
 
-                if not class_value.is_integer():
+                if not math.isfinite(class_value) or not class_value.is_integer():
                     raise ValueError("Invalid class ID")
 
                 class_id = int(class_value)
@@ -82,13 +50,18 @@ for image_path in image_paths:
                     raise ValueError("Unknown class ID")
 
                 if not all(
-                    -TOLERANCE <= value <= 1 + TOLERANCE
+                    math.isfinite(value)
                     for value in [x_center, y_center, width, height]
                 ):
-                    raise ValueError("Invalid normalized coordinates")
+                    raise ValueError("Non-finite coordinate")
 
-                if width <= 0 or height <= 0:
-                    raise ValueError("Invalid bounding box size")
+                if not (
+                    -TOLERANCE <= x_center <= 1 + TOLERANCE
+                    and -TOLERANCE <= y_center <= 1 + TOLERANCE
+                    and 0 < width <= 1 + TOLERANCE
+                    and 0 < height <= 1 + TOLERANCE
+                ):
+                    raise ValueError("Invalid normalized coordinates")
 
                 if (
                     x_center - width / 2 < -TOLERANCE
@@ -98,23 +71,111 @@ for image_path in image_paths:
                 ):
                     raise ValueError("Bounding box outside image")
 
-            except (ValueError, OverflowError):
-                invalid_annotations.append(
-                    f"{annotation_path}, line {line_number}: {line.strip()}"
+                class_ids.add(class_id)
+                box_count += 1
+
+            except (ValueError, OverflowError) as error:
+                errors.append(
+                    f"{path}, line {line_number}: {error}: {line.strip()}"
                 )
 
-for label_path in label_paths:
-    key = (label_path.parent.parent, label_path.stem)
+    return errors, class_ids, box_count
 
-    if key not in image_keys:
+
+image_paths = [
+    path for path in DATA_DIR.rglob("*")
+    if path.is_file()
+    and path.suffix.lower() in IMAGE_EXTENSIONS
+    and path.parent.name.lower() == "images"
+]
+
+label_paths = get_label_paths()
+
+image_index = {
+    get_image_key(path): path
+    for path in image_paths
+}
+
+label_index = {}
+
+for path in label_paths:
+    key = get_image_key(path)
+
+    if key in label_index:
+        print("Duplicate annotation filename:", path)
+
+    label_index[key] = path
+
+corrupted_images = []
+missing_annotations = []
+orphan_annotations = []
+invalid_annotations = []
+folder_conflicts = []
+
+box_counts = Counter()
+class_distribution = Counter()
+empty_labels = 0
+
+for image_path in image_paths:
+    split_name = image_path.parents[2].name
+    folder_class = image_path.parent.parent.name
+
+    class_distribution[(split_name, folder_class)] += 1
+
+    try:
+        with Image.open(image_path) as image:
+            image.verify()
+    except Exception:
+        corrupted_images.append(str(image_path))
+        continue
+
+    annotation_path = label_index.get(get_image_key(image_path))
+
+    if annotation_path is None:
+        missing_annotations.append(str(image_path))
+        continue
+
+    errors, class_ids, box_count = validate_label_file(annotation_path)
+
+    invalid_annotations.extend(errors)
+
+    if box_count == 0:
+        empty_labels += 1
+
+    for class_id in class_ids:
+        box_counts[CLASS_NAMES[class_id]] += 1
+
+    if folder_class in CLASS_NAMES:
+        expected_class_id = CLASS_NAMES.index(folder_class)
+
+        if any(class_id != expected_class_id for class_id in class_ids):
+            folder_conflicts.append(str(image_path))
+
+for key, label_path in label_index.items():
+    if key not in image_index:
         orphan_annotations.append(str(label_path))
 
 print("Total images:", len(image_paths))
-print("Total label files:", len(label_paths))
+print("Total annotation files:", len(label_paths))
 print("Corrupted images:", len(corrupted_images))
 print("Images without annotations:", len(missing_annotations))
 print("Annotations without images:", len(orphan_annotations))
-print("Invalid annotations:", len(invalid_annotations))
+print("Invalid annotation rows:", len(invalid_annotations))
+print("Empty annotation files:", empty_labels)
+print("Folder/annotation class disagreements:", len(folder_conflicts))
+
+print("\nImage distribution:")
+
+for (split_name, class_name), count in sorted(class_distribution.items()):
+    print(f"{split_name} / {class_name}: {count}")
+
+print("\nBounding boxes by annotation class:")
+
+for class_name in CLASS_NAMES:
+    print(f"{class_name}: {box_counts[class_name]}")
+
+print("\nCorrupted images:")
+print(*corrupted_images, sep="\n")
 
 print("\nImages without annotations:")
 print(*missing_annotations, sep="\n")
@@ -122,81 +183,8 @@ print(*missing_annotations, sep="\n")
 print("\nAnnotations without images:")
 print(*orphan_annotations, sep="\n")
 
-print("\nCorrupted images:")
-print(*corrupted_images, sep="\n")
-
-print("\nInvalid annotations:")
+print("\nInvalid annotation rows:")
 print(*invalid_annotations, sep="\n")
 
-valid_images = [
-    path for path in image_paths
-    if str(path) not in corrupted_images
-]
-
-samples = random.sample(valid_images, min(SAMPLE_COUNT, len(valid_images)))
-
-if samples:
-    columns = 4
-    rows = (len(samples) + columns - 1) // columns
-
-    fig, axes = plt.subplots(rows, columns, figsize=(16, 4 * rows))
-    axes = list(axes.flat) if hasattr(axes, "flat") else [axes]
-
-    for ax, image_path in zip(axes, samples):
-        with Image.open(image_path) as source:
-            image = source.convert("RGB")
-
-        draw = ImageDraw.Draw(image)
-        annotation_path = get_annotation_path(image_path)
-
-        if annotation_path.is_file():
-            with open(annotation_path, "r", encoding="utf-8") as file:
-                for line in file:
-                    values = line.split()
-
-                    try:
-                        if len(values) != 5:
-                            continue
-
-                        class_value = float(values[0])
-
-                        if not class_value.is_integer():
-                            continue
-
-                        class_id = int(class_value)
-                        x_center, y_center, width, height = map(float, values[1:])
-
-                        if not 0 <= class_id < len(CLASS_NAMES):
-                            continue
-
-                        image_width, image_height = image.size
-
-                        x1 = (x_center - width / 2) * image_width
-                        y1 = (y_center - height / 2) * image_height
-                        x2 = (x_center + width / 2) * image_width
-                        y2 = (y_center + height / 2) * image_height
-
-                        draw.rectangle(
-                            (x1, y1, x2, y2),
-                            outline="red",
-                            width=2
-                        )
-
-                        draw.text(
-                            (max(0, x1), max(0, y1 - 15)),
-                            CLASS_NAMES[class_id],
-                            fill="yellow"
-                        )
-
-                    except (ValueError, OverflowError):
-                        continue
-
-        ax.imshow(image)
-        ax.set_title(image_path.relative_to(DATA_DIR).as_posix())
-        ax.axis("off")
-
-    for ax in axes[len(samples):]:
-        ax.axis("off")
-
-    plt.tight_layout()
-    plt.show()
+print("\nFolder/annotation class disagreements:")
+print(*folder_conflicts, sep="\n")
