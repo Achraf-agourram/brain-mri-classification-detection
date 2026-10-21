@@ -192,3 +192,38 @@ def get_records():
 
     return records, orphan_labels
 
+
+def remove_duplicates(records):
+    kept_records = []
+    seen_hashes = {}
+    dropped_records = []
+
+    records.sort(key=lambda record: (
+        record["source_split"] != "Val",
+        record["source_path"]
+    ))
+
+    for record in records:
+        pixel_hash = record["pixel_hash"]
+
+        if pixel_hash in seen_hashes:
+            previous = seen_hashes[pixel_hash]
+
+            if (
+                record["folder_class"] != previous["folder_class"]
+                or record["rows"] != previous["rows"]
+            ):
+                print(
+                    "Warning: duplicate images have different labels:",
+                    record["source_path"],
+                    previous["source_path"]
+                )
+
+            dropped_records.append(record["source_path"])
+            continue
+
+        seen_hashes[pixel_hash] = record
+        kept_records.append(record)
+
+    return kept_records, dropped_records
+
