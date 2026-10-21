@@ -16,3 +16,12 @@ SEED = 42
 VALIDATION_RATIO = 0.10
 TOLERANCE = 1e-5
 
+
+def get_pixel_hash(image_path):
+    with Image.open(image_path) as image:
+        image.load()
+        image = image.convert("RGB")
+        content = f"{image.width}x{image.height}".encode() + image.tobytes()
+
+    return hashlib.sha256(content).hexdigest()
+
