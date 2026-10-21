@@ -209,16 +209,6 @@ def remove_duplicates(records):
         if pixel_hash in seen_hashes:
             previous = seen_hashes[pixel_hash]
 
-            if (
-                record["folder_class"] != previous["folder_class"]
-                or record["rows"] != previous["rows"]
-            ):
-                print(
-                    "Warning: duplicate images have different labels:",
-                    record["source_path"],
-                    previous["source_path"]
-                )
-
             dropped_records.append(record["source_path"])
             continue
 
@@ -308,10 +298,6 @@ def write_splits(splits, orphan_labels, dropped_records):
         csv_path = OUTPUT_DIR / f"{split_name}.csv"
         txt_path = OUTPUT_DIR / f"{split_name}.txt"
         split_rows = []
-
-        with open(txt_path, "w", encoding="utf-8", newline="") as file:
-            for record in records:
-                file.write(record["image_path"] + "\n")
 
         for record in records:
             class_name = record["folder_class"]
