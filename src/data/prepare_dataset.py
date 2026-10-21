@@ -227,3 +227,60 @@ def remove_duplicates(records):
 
     return kept_records, dropped_records
 
+
+def create_splits(records):
+    test_records = [
+        record for record in records
+        if record["source_split"] == "Val"
+    ]
+
+    training_records = [
+        record for record in records
+        if record["source_split"] == "Train"
+    ]
+
+    rng = random.Random(SEED)
+    train_records = []
+    validation_records = []
+
+    for class_name in CLASS_NAMES:
+        class_records = [
+            record for record in training_records
+            if record["folder_class"] == class_name
+        ]
+
+        rng.shuffle(class_records)
+
+        validation_count = (
+            max(1, round(len(class_records) * VALIDATION_RATIO))
+            if len(class_records) >= 2
+            else 0
+        )
+
+        validation_records.extend(class_records[:validation_count])
+        train_records.extend(class_records[validation_count:])
+
+    splits = {
+        "train": train_records,
+        "validation": validation_records,
+        "test": test_records
+    }
+
+    split_hashes = {
+        name: {record["pixel_hash"] for record in split_records}
+        for name, split_records in splits.items()
+    }
+
+    if (
+        split_hashes["train"] & split_hashes["validation"]
+        or split_hashes["train"] & split_hashes["test"]
+        or split_hashes["validation"] & split_hashes["test"]
+    ):
+        raise ValueError("Duplicate images detected across splits")
+
+    return splits
+
+
+def create_output_directories():
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
