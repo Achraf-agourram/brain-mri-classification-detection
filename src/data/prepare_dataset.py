@@ -284,3 +284,123 @@ def create_splits(records):
 def create_output_directories():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+
+def write_splits(splits, orphan_labels, dropped_records):
+    create_output_directories()
+
+    fields = [
+        "image_path",
+        "label_path",
+        "class_name",
+        "class_id",
+        "split",
+        "source_split",
+        "annotation_classes",
+        "annotation_status",
+        "folder_label_conflict",
+        "pixel_hash"
+    ]
+
+    manifest_rows = []
+    summary = Counter()
+
+    for split_name, records in splits.items():
+        csv_path = OUTPUT_DIR / f"{split_name}.csv"
+        txt_path = OUTPUT_DIR / f"{split_name}.txt"
+        split_rows = []
+
+        with open(txt_path, "w", encoding="utf-8", newline="") as file:
+            for record in records:
+                file.write(record["image_path"] + "\n")
+
+        for record in records:
+            class_name = record["folder_class"]
+            annotation_classes = record["annotation_classes"]
+            folder_class_id = record["class_id"]
+
+            folder_label_conflict = any(
+                class_id != folder_class_id
+                for class_id in annotation_classes
+            )
+
+            if not record["label_path"]:
+                annotation_status = "missing_assumed_background"
+            elif not record["rows"]:
+                annotation_status = "empty_label"
+            else:
+                annotation_status = "labeled"
+
+            row = {
+                "image_path": record["image_path"],
+                "label_path": record["label_path"],
+                "class_name": class_name,
+                "class_id": folder_class_id,
+                "split": split_name,
+                "source_split": record["source_split"],
+                "annotation_classes": ";".join(
+                    CLASS_NAMES[class_id]
+                    for class_id in annotation_classes
+                ),
+                "annotation_status": annotation_status,
+                "folder_label_conflict": folder_label_conflict,
+                "pixel_hash": record["pixel_hash"]
+            }
+
+            split_rows.append(row)
+            manifest_rows.append(row)
+            summary[(split_name, class_name)] += 1
+
+        with open(csv_path, "w", newline="", encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=fields)
+            writer.writeheader()
+            writer.writerows(split_rows)
+
+    with open(
+        OUTPUT_DIR / "manifest.csv",
+        "w",
+        newline="",
+        encoding="utf-8"
+    ) as file:
+        writer = csv.DictWriter(file, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(manifest_rows)
+
+    with open(
+        OUTPUT_DIR / "split_summary.csv",
+        "w",
+        newline="",
+        encoding="utf-8"
+    ) as file:
+        writer = csv.writer(file)
+        writer.writerow(["split", "class", "image_count"])
+
+        for (split_name, class_name), count in sorted(summary.items()):
+            writer.writerow([split_name, class_name, count])
+
+    print("\nDataset splits created.")
+
+    for split_name, records in splits.items():
+        print(f"{split_name.capitalize()} images: {len(records)}")
+
+    print("Duplicates excluded:", len(dropped_records))
+    print("Orphan annotation files:", len(orphan_labels))
+    print("Output directory:", OUTPUT_DIR)
+
+
+def main():
+    records, orphan_labels = get_records()
+
+    print("Images loaded:", len(records))
+    print("Orphan annotation files:", len(orphan_labels))
+
+    records, dropped_records = remove_duplicates(records)
+
+    print("Images after duplicate removal:", len(records))
+    print("Duplicate images excluded:", len(dropped_records))
+
+    splits = create_splits(records)
+    write_splits(splits, orphan_labels, dropped_records)
+
+
+if __name__ == "__main__":
+    main()
