@@ -101,3 +101,94 @@ def parse_annotations(label_path):
 
     return rows
 
+
+def get_records():
+    records = []
+    orphan_labels = []
+    missing_labels = []
+
+    for source_split in ["Train", "Val"]:
+        split_dir = DATA_DIR / source_split
+
+        if not split_dir.is_dir():
+            raise FileNotFoundError(f"Missing directory: {split_dir}")
+
+        for class_name in CLASS_NAMES:
+            class_dir = split_dir / class_name
+            images_dir = class_dir / "images"
+            labels_dir = class_dir / "labels"
+
+            if not images_dir.is_dir():
+                raise FileNotFoundError(f"Missing directory: {images_dir}")
+
+            if not labels_dir.is_dir():
+                raise FileNotFoundError(f"Missing directory: {labels_dir}")
+
+            label_index = {}
+
+            for label_path in labels_dir.rglob("*"):
+                if not label_path.is_file() or label_path.suffix.lower() != ".txt":
+                    continue
+
+                key = label_path.stem.casefold()
+
+                if key in label_index:
+                    raise ValueError(
+                        f"Duplicate label filename: {label_path}"
+                    )
+
+                label_index[key] = label_path
+
+            image_paths = sorted(
+                path for path in images_dir.rglob("*")
+                if path.is_file()
+                and path.suffix.lower() in IMAGE_EXTENSIONS
+            )
+
+            image_stems = {path.stem.casefold() for path in image_paths}
+
+            for label_path in label_index.values():
+                if label_path.stem.casefold() not in image_stems:
+                    orphan_labels.append(str(label_path))
+
+            for image_path in image_paths:
+                label_path = label_index.get(image_path.stem.casefold())
+
+                if label_path is None and class_name != "No Tumor":
+                    missing_labels.append(str(image_path))
+                    continue
+
+                try:
+                    pixel_hash = get_pixel_hash(image_path)
+                    rows = parse_annotations(label_path)
+                except Exception as error:
+                    raise ValueError(
+                        f"Cannot process {image_path}: {error}"
+                    ) from error
+
+                annotation_classes = sorted({row[0] for row in rows})
+
+                records.append({
+                    "source_split": source_split,
+                    "source_path": image_path.relative_to(DATA_DIR).as_posix(),
+                    "image_path": image_path.resolve().as_posix(),
+                    "label_path": (
+                        label_path.resolve().as_posix()
+                        if label_path is not None
+                        else ""
+                    ),
+                    "folder_class": class_name,
+                    "class_id": CLASS_NAMES.index(class_name),
+                    "pixel_hash": pixel_hash,
+                    "rows": rows,
+                    "annotation_classes": annotation_classes
+                })
+
+    if missing_labels:
+        raise ValueError(
+            "Images outside No Tumor have no annotations:\n"
+            + "\n".join(missing_labels[:20])
+        )
+
+    return records, orphan_labels
+
