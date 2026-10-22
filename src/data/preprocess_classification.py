@@ -33,3 +33,14 @@ def load_and_resize(image_path, class_id):
     image = tf.cast(image, tf.float32)
     return image, class_id
 
+
+def augment_and_normalize(image, class_id):
+    image = augmentation(image, training=True)
+    image = image / 255.0
+    return image, class_id
+
+
+def normalize(image, class_id):
+    image = image / 255.0
+    return image, class_id
+
