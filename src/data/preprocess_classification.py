@@ -44,3 +44,32 @@ def normalize(image, class_id):
     image = image / 255.0
     return image, class_id
 
+
+def create_dataset(records, training=False):
+    dataframe = pd.DataFrame(records)
+    image_paths = dataframe["image_path"].astype(str).to_numpy()
+    class_ids = dataframe["class_id"].to_numpy(dtype="int32")
+
+    dataset = tf.data.Dataset.from_tensor_slices((image_paths, class_ids))
+
+    if training:
+        dataset = dataset.shuffle(
+            buffer_size=len(dataframe),
+            seed=SEED,
+            reshuffle_each_iteration=True
+        )
+
+    dataset = dataset.map(load_and_resize, num_parallel_calls=AUTOTUNE, deterministic=True)
+
+    if training:
+        dataset = dataset.map(augment_and_normalize, num_parallel_calls=AUTOTUNE, deterministic=True)
+    else:
+        dataset = dataset.map(normalize, num_parallel_calls=AUTOTUNE, deterministic=True)
+
+    options = tf.data.Options()
+    options.deterministic = True
+    dataset = dataset.with_options(options)
+    dataset = dataset.batch(BATCH_SIZE).prefetch(AUTOTUNE)
+
+    return dataset
+
