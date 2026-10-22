@@ -73,3 +73,24 @@ def create_dataset(records, training=False):
 
     return dataset
 
+
+def create_datasets():
+    records, orphan_labels = get_records()
+    splits = create_splits(records)
+
+    class_names = CLASS_NAMES
+
+    train_dataset = create_dataset(
+        splits["train"],
+        training=True
+    )
+
+    validation_dataset = create_dataset(
+        splits["validation"]
+    )
+
+    test_dataset = create_dataset(
+        splits["test"]
+    )
+
+    return train_dataset, validation_dataset, test_dataset, class_names
