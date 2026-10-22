@@ -23,3 +23,13 @@ augmentation = tf.keras.Sequential([
     ),
     tf.keras.layers.RandomContrast(0.10)
 ])
+
+
+def load_and_resize(image_path, class_id):
+    image_data = tf.io.read_file(image_path)
+    image = tf.image.decode_image(image_data, channels=3, expand_animations=False)
+    image.set_shape([None, None, 3])
+    image = tf.image.resize(image, IMAGE_SIZE)
+    image = tf.cast(image, tf.float32)
+    return image, class_id
+
