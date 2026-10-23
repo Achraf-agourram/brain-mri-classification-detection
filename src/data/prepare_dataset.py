@@ -8,7 +8,7 @@ from PIL import Image
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT_DIR / "data" / "raw"
-OUTPUT_DIR = ROOT_DIR / "data" / "processed" / "mri_dataset"
+OUTPUT_DIR = ROOT_DIR / "data" / "processed" / "mri_classification_corrected"
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 CLASS_NAMES = ["Glioma", "Meningioma", "No Tumor", "Pituitary"]
