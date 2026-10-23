@@ -165,3 +165,110 @@ def build_plan():
 
     return actions, stats
 
+
+def create_corrected_copy(actions):
+    if OUTPUT_DIR.exists():
+        raise FileExistsError(
+            f"Output directory already exists: {OUTPUT_DIR}. "
+            "Rename or remove that directory before creating a new copy."
+        )
+
+    for split_name in SPLIT_NAMES:
+        source_split = DATA_DIR / split_name
+
+        if not source_split.is_dir():
+            raise FileNotFoundError(
+                f"Dataset split not found: {source_split}"
+            )
+
+    for split_name in SPLIT_NAMES:
+        shutil.copytree(
+            DATA_DIR / split_name,
+            OUTPUT_DIR / split_name
+        )
+
+    stats = Counter()
+
+    for action in actions:
+        image_path = action["image_path"]
+        label_path = action["label_path"]
+
+        copied_image = OUTPUT_DIR / image_path.relative_to(DATA_DIR)
+        copied_label = OUTPUT_DIR / label_path.relative_to(DATA_DIR)
+
+        split_name = action["split"]
+        current_class = action["current_class"]
+
+        if action["action"] == "quarantine":
+            continue
+
+        correct_class = action["correct_class"]
+        target_class_dir = (
+            OUTPUT_DIR / split_name / correct_class
+        )
+
+        target_image = target_class_dir / "images" / image_path.name
+        target_label = target_class_dir / "labels" / label_path.name
+
+        if target_image.exists() or target_label.exists():
+            stats["skipped_destination_conflict"] += 1
+            print(f"SKIPPED CONFLICT: {image_path.name}")
+            continue
+
+        target_image.parent.mkdir(parents=True, exist_ok=True)
+        target_label.parent.mkdir(parents=True, exist_ok=True)
+
+        shutil.move(str(copied_image), str(target_image))
+        shutil.move(str(copied_label), str(target_label))
+
+        stats["reclassified_images"] += 1
+
+        print(
+            f"RECLASSIFIED: {image_path.name} "
+            f"({current_class} -> {correct_class})"
+        )
+
+    return stats
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--apply", action="store_true")
+    args = parser.parse_args()
+
+    actions, plan_stats = build_plan()
+
+    print("Planned reclassifications:")
+    for action in actions:
+        if action["action"] == "reclassify":
+            print(
+                f"{action['image_path'].name}: "
+                f"{action['current_class']} -> "
+                f"{action['correct_class']}"
+            )
+        else:
+            print(
+                f"Quarantine multiple-class image: "
+                f"{action['image_path'].name}"
+            )
+
+    print("\nAnalysis summary:")
+    for name, count in sorted(plan_stats.items()):
+        print(f"{name}: {count}")
+
+    if not args.apply:
+        print("\nPreview only. No files have been copied or changed.")
+        print("Use --apply to create the corrected dataset.")
+        return
+
+    execution_stats = create_corrected_copy(actions)
+
+    print(f"\nCorrected dataset created at: {OUTPUT_DIR}")
+
+    print("\nExecution summary:")
+    for name, count in sorted(execution_stats.items()):
+        print(f"{name}: {count}")
+
+
+if __name__ == "__main__":
+    main()
