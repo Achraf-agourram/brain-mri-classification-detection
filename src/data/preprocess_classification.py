@@ -1,10 +1,10 @@
 from pathlib import Path
 import pandas as pd
 import tensorflow as tf
-from src.data.prepare_dataset import get_records, create_splits, CLASS_NAMES
+from src.data.prepare_dataset import remove_duplicates, get_records, create_splits, CLASS_NAMES
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-DATA_DIR = ROOT_DIR / "data" / "raw"
+DATA_DIR = ROOT_DIR / "data" / "processed" / "mri_classification_corrected"
 IMAGE_SIZE = (224, 224)
 BATCH_SIZE = 32
 VALIDATION_RATIO = 0.10
@@ -74,7 +74,8 @@ def create_dataset(records, training=False):
 
 
 def create_datasets():
-    records, orphan_labels = get_records()
+    records, _ = get_records()
+    records, _ = remove_duplicates(records)
     splits = create_splits(records)
 
     class_names = CLASS_NAMES
