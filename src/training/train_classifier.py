@@ -53,3 +53,13 @@ def load_backbone(model_name):
 
     return base_model, preprocess_input
 
+
+def prepare_dataset(dataset, preprocess_input):
+    return dataset.map(
+        lambda images, labels: (
+            preprocess_input(images * 255.0),
+            labels
+        ),
+        num_parallel_calls=AUTOTUNE
+    ).prefetch(AUTOTUNE)
+
