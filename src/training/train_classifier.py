@@ -128,3 +128,136 @@ def get_best_validation_metrics(history):
         )
     }
 
+
+def train_model(model_name):
+    model_dir = MODEL_DIR / model_name
+    report_dir = REPORT_DIR / model_name
+    model_dir.mkdir(parents=True, exist_ok=True)
+    report_dir.mkdir(parents=True, exist_ok=True)
+
+    (
+        train_dataset,
+        validation_dataset,
+        test_dataset,
+        class_names
+    ) = create_datasets()
+
+    model, base_model, preprocess_input = build_model(
+        model_name,
+        len(class_names)
+    )
+
+    train_dataset = prepare_dataset(
+        train_dataset,
+        preprocess_input
+    )
+    validation_dataset = prepare_dataset(
+        validation_dataset,
+        preprocess_input
+    )
+    test_dataset = prepare_dataset(
+        test_dataset,
+        preprocess_input
+    )
+
+    head_checkpoint = model_dir / "head_best.keras"
+    fine_tune_checkpoint = model_dir / "fine_tuned_best.keras"
+    final_model_path = model_dir / "best_model.keras"
+
+    compile_model(model, INITIAL_LEARNING_RATE)
+
+    head_history = model.fit(
+        train_dataset,
+        validation_data=validation_dataset,
+        epochs=HEAD_EPOCHS,
+        callbacks=create_callbacks(head_checkpoint)
+    )
+
+    model.save(head_checkpoint)
+
+    pd.DataFrame(head_history.history).to_csv(
+        report_dir / "head_history.csv",
+        index=False
+    )
+
+    head_metrics = get_best_validation_metrics(head_history)
+
+    base_model.trainable = True
+
+    for layer in base_model.layers[:-UNFREEZE_LAST_LAYERS]:
+        layer.trainable = False
+
+    for layer in base_model.layers:
+        if isinstance(layer, tf.keras.layers.BatchNormalization):
+            layer.trainable = False
+
+    compile_model(model, FINE_TUNE_LEARNING_RATE)
+
+    fine_tune_history = model.fit(
+        train_dataset,
+        validation_data=validation_dataset,
+        epochs=FINE_TUNE_EPOCHS,
+        callbacks=create_callbacks(fine_tune_checkpoint)
+    )
+
+    model.save(fine_tune_checkpoint)
+
+    pd.DataFrame(fine_tune_history.history).to_csv(
+        report_dir / "fine_tuning_history.csv",
+        index=False
+    )
+
+    fine_tune_metrics = get_best_validation_metrics(
+        fine_tune_history
+    )
+
+    if fine_tune_metrics["loss"] < head_metrics["loss"]:
+        selected_checkpoint = fine_tune_checkpoint
+        selected_phase = "fine_tuning"
+        selected_validation_metrics = fine_tune_metrics
+    else:
+        selected_checkpoint = head_checkpoint
+        selected_phase = "head_only"
+        selected_validation_metrics = head_metrics
+
+    best_model = tf.keras.models.load_model(selected_checkpoint)
+    best_model.save(final_model_path)
+
+    test_metrics = best_model.evaluate(
+        test_dataset,
+        return_dict=True,
+        verbose=1
+    )
+
+    results = {
+        "model": model_name,
+        "class_names": list(class_names),
+        "selected_phase": selected_phase,
+        "head_validation_loss": head_metrics["loss"],
+        "head_validation_accuracy": head_metrics["accuracy"],
+        "fine_tuning_validation_loss": fine_tune_metrics["loss"],
+        "fine_tuning_validation_accuracy": fine_tune_metrics[
+            "accuracy"
+        ],
+        "selected_validation_loss": selected_validation_metrics[
+            "loss"
+        ],
+        "selected_validation_accuracy": selected_validation_metrics[
+            "accuracy"
+        ],
+        "test_metrics": {
+            key: float(value)
+            for key, value in test_metrics.items()
+        },
+        "model_path": str(final_model_path)
+    }
+
+    with open(report_dir / "metrics.json", "w", encoding="utf-8") as file:
+        json.dump(results, file, indent=4)
+
+    with open(report_dir / "classes.json", "w", encoding="utf-8") as file:
+        json.dump(list(class_names), file, indent=4)
+
+    print(json.dumps(results, indent=4))
+
+
