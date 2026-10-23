@@ -58,3 +58,35 @@ def read_class_ids(label_path):
 
     return class_ids, None
 
+
+def collect_images():
+    records = []
+
+    for split_name in SPLIT_NAMES:
+        split_dir = DATA_DIR / split_name
+
+        for class_name in CLASS_ID_TO_NAME.values():
+            image_dir = split_dir / class_name / "images"
+
+            if not image_dir.is_dir():
+                continue
+
+            for image_path in sorted(image_dir.iterdir()):
+                if (
+                    image_path.is_file()
+                    and image_path.suffix.lower() in IMAGE_EXTENSIONS
+                ):
+                    records.append({
+                        "split": split_name,
+                        "current_class": class_name,
+                        "image_path": image_path,
+                        "label_path": (
+                            split_dir
+                            / class_name
+                            / "labels"
+                            / f"{image_path.stem}.txt"
+                        )
+                    })
+
+    return records
+
