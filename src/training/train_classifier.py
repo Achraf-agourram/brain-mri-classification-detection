@@ -63,3 +63,32 @@ def prepare_dataset(dataset, preprocess_input):
         num_parallel_calls=AUTOTUNE
     ).prefetch(AUTOTUNE)
 
+
+def build_model(model_name, num_classes):
+    base_model, preprocess_input = load_backbone(model_name)
+    base_model.trainable = False
+
+    inputs = tf.keras.Input(shape=(*IMAGE_SIZE, 3))
+    features = base_model(inputs, training=False)
+    features = tf.keras.layers.GlobalAveragePooling2D()(features)
+    features = tf.keras.layers.Dropout(0.3)(features)
+
+    outputs = tf.keras.layers.Dense(
+        num_classes,
+        activation="softmax"
+    )(features)
+
+    model = tf.keras.Model(inputs, outputs)
+
+    return model, base_model, preprocess_input
+
+
+def compile_model(model, learning_rate):
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(
+            learning_rate=learning_rate
+        ),
+        loss="sparse_categorical_crossentropy",
+        metrics=["accuracy"]
+    )
+
