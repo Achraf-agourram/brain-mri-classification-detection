@@ -92,3 +92,39 @@ def compile_model(model, learning_rate):
         metrics=["accuracy"]
     )
 
+
+def create_callbacks(checkpoint_path):
+    return [
+        tf.keras.callbacks.ModelCheckpoint(
+            filepath=str(checkpoint_path),
+            monitor="val_loss",
+            save_best_only=True,
+            mode="min"
+        ),
+        tf.keras.callbacks.EarlyStopping(
+            monitor="val_loss",
+            patience=4,
+            restore_best_weights=True
+        ),
+        tf.keras.callbacks.ReduceLROnPlateau(
+            monitor="val_loss",
+            factor=0.2,
+            patience=2,
+            min_lr=1e-7
+        )
+    ]
+
+
+def get_best_validation_metrics(history):
+    best_index = min(
+        range(len(history.history["val_loss"])),
+        key=lambda index: history.history["val_loss"][index]
+    )
+
+    return {
+        "loss": float(history.history["val_loss"][best_index]),
+        "accuracy": float(
+            history.history["val_accuracy"][best_index]
+        )
+    }
+
