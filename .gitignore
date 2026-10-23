@@ -2,6 +2,7 @@ data/*
 
 !data/processed/.gitkeep
 !data/raw/.gitkeep
+!data/download_data_set.py
 
 __pycache__/
 *.py[cod]
