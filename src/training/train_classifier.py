@@ -261,3 +261,13 @@ def train_model(model_name):
     print(json.dumps(results, indent=4))
 
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--model",
+        choices=["mobilenetv2", "resnet50"],
+        required=True
+    )
+    arguments = parser.parse_args()
+
+    train_model(arguments.model)
