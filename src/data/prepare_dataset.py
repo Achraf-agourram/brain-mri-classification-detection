@@ -7,8 +7,8 @@ import random
 from PIL import Image
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-DATA_DIR = ROOT_DIR / "data" / "raw"
-OUTPUT_DIR = ROOT_DIR / "data" / "processed" / "mri_classification_corrected"
+DATA_DIR = ROOT_DIR / "data" / "processed" / "mri_classification_corrected"
+OUTPUT_DIR = ROOT_DIR / "data" / "processed" / "mri_dataset"
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 CLASS_NAMES = ["Glioma", "Meningioma", "No Tumor", "Pituitary"]
