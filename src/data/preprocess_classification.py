@@ -5,13 +5,12 @@ from src.data.prepare_dataset import get_records, create_splits, CLASS_NAMES
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT_DIR / "data" / "raw"
-OUTPUT_DIR = ROOT_DIR / "data" / "processed" / "mri_classification"
 IMAGE_SIZE = (224, 224)
 BATCH_SIZE = 32
 VALIDATION_RATIO = 0.10
 SEED = 42
 AUTOTUNE = tf.data.AUTOTUNE
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp"}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
 augmentation = tf.keras.Sequential([
     tf.keras.layers.RandomFlip("horizontal"),
