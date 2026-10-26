@@ -1,0 +1,21 @@
+{
+    "model": "mobilenetv2",
+    "class_names": [
+        "Glioma",
+        "Meningioma",
+        "No Tumor",
+        "Pituitary"
+    ],
+    "selected_phase": "fine_tuning",
+    "head_validation_loss": 0.4078282415866852,
+    "head_validation_accuracy": 0.8558823466300964,
+    "fine_tuning_validation_loss": 0.3028971254825592,
+    "fine_tuning_validation_accuracy": 0.8941176533699036,
+    "selected_validation_loss": 0.3028971254825592,
+    "selected_validation_accuracy": 0.8941176533699036,
+    "test_metrics": {
+        "accuracy": 0.8697394728660583,
+        "loss": 0.32668668031692505
+    },
+    "model_path": "/home/achraf/brain-mri-classification-detection/models/transfer_learning/mobilenetv2/best_model.keras"
+}
