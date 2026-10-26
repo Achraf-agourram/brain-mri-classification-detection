@@ -6,7 +6,7 @@ from src.data.prepare_dataset import remove_duplicates, get_records, create_spli
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT_DIR / "data" / "processed" / "mri_classification_corrected"
 IMAGE_SIZE = (224, 224)
-BATCH_SIZE = 32
+BATCH_SIZE = 25
 VALIDATION_RATIO = 0.10
 SEED = 42
 AUTOTUNE = tf.data.AUTOTUNE
