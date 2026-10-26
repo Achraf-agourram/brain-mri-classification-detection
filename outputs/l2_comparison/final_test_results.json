@@ -1,7 +1,0 @@
-{
-    "selected_configuration": "l2_1e-4",
-    "test_metrics": {
-        "accuracy": 0.8757514953613281,
-        "loss": 0.3614685833454132
-    }
-}

@@ -1,3 +1,0 @@
-configuration,l2,best_epoch,best_val_accuracy,val_loss_at_best_accuracy
-baseline_no_l2,0.0,2,0.8735294342041016,0.31929466128349304
-l2_1e-4,0.0001,13,0.8794117569923401,0.34964123368263245

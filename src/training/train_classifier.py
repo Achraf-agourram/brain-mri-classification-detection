@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 import pandas as pd
+import matplotlib.pyplot as plt
 import tensorflow as tf
 
 from src.data.preprocess_classification import (
@@ -12,8 +13,8 @@ from src.data.preprocess_classification import (
 )
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-MODEL_DIR = ROOT_DIR / "models" / "transfer_learning"
-REPORT_DIR = ROOT_DIR / "reports" / "transfer_learning"
+MODEL_DIR = ROOT_DIR / "models"
+REPORT_DIR = ROOT_DIR / "reports"
 
 HEAD_EPOCHS = 10
 FINE_TUNE_EPOCHS = 8
@@ -131,6 +132,96 @@ def get_best_validation_metrics(history):
     }
 
 
+def plot_learning_curves(head_history, fine_tune_history, report_dir):
+    head_epochs = range(1, len(head_history.history["loss"]) + 1)
+    fine_tune_start = len(head_history.history["loss"]) + 1
+    fine_tune_epochs = range(
+        fine_tune_start,
+        fine_tune_start + len(fine_tune_history.history["loss"])
+    )
+    transition_epoch = fine_tune_start - 0.5
+
+    figure, axis = plt.subplots(figsize=(10, 6))
+    training_line, = axis.plot(
+        head_epochs,
+        head_history.history["loss"],
+        label="Training loss"
+    )
+    validation_line, = axis.plot(
+        head_epochs,
+        head_history.history["val_loss"],
+        linestyle="--",
+        label="Validation loss"
+    )
+    axis.plot(
+        fine_tune_epochs,
+        fine_tune_history.history["loss"],
+        color=training_line.get_color(),
+        label="_nolegend_"
+    )
+    axis.plot(
+        fine_tune_epochs,
+        fine_tune_history.history["val_loss"],
+        color=validation_line.get_color(),
+        linestyle="--",
+        label="_nolegend_"
+    )
+    axis.axvline(
+        transition_epoch,
+        color="gray",
+        linestyle=":",
+        label="Fine-tuning starts"
+    )
+    axis.set_xlabel("Epoch")
+    axis.set_ylabel("Loss")
+    axis.set_title("Training and Validation Loss - L2 Regularization")
+    axis.legend()
+    axis.grid(True, alpha=0.3)
+    figure.tight_layout()
+    figure.savefig(report_dir / "loss_comparison.png", dpi=150)
+    plt.close(figure)
+
+    figure, axis = plt.subplots(figsize=(10, 6))
+    training_line, = axis.plot(
+        head_epochs,
+        head_history.history["accuracy"],
+        label="Training accuracy"
+    )
+    validation_line, = axis.plot(
+        head_epochs,
+        head_history.history["val_accuracy"],
+        linestyle="--",
+        label="Validation accuracy"
+    )
+    axis.plot(
+        fine_tune_epochs,
+        fine_tune_history.history["accuracy"],
+        color=training_line.get_color(),
+        label="_nolegend_"
+    )
+    axis.plot(
+        fine_tune_epochs,
+        fine_tune_history.history["val_accuracy"],
+        color=validation_line.get_color(),
+        linestyle="--",
+        label="_nolegend_"
+    )
+    axis.axvline(
+        transition_epoch,
+        color="gray",
+        linestyle=":",
+        label="Fine-tuning starts"
+    )
+    axis.set_xlabel("Epoch")
+    axis.set_ylabel("Accuracy")
+    axis.set_title("Training and Validation Accuracy - L2 Regularization")
+    axis.legend()
+    axis.grid(True, alpha=0.3)
+    figure.tight_layout()
+    figure.savefig(report_dir / "accuracy_comparison.png", dpi=150)
+    plt.close(figure)
+
+
 def train_model(model_name):
     model_dir = MODEL_DIR / model_name
     report_dir = REPORT_DIR / model_name
@@ -211,6 +302,12 @@ def train_model(model_name):
 
     fine_tune_metrics = get_best_validation_metrics(
         fine_tune_history
+    )
+
+    plot_learning_curves(
+        head_history,
+        fine_tune_history,
+        report_dir
     )
 
     if fine_tune_metrics["loss"] < head_metrics["loss"]:
