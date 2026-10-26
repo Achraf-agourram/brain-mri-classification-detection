@@ -20,6 +20,7 @@ FINE_TUNE_EPOCHS = 8
 UNFREEZE_LAST_LAYERS = 30
 INITIAL_LEARNING_RATE = 1e-3
 FINE_TUNE_LEARNING_RATE = 1e-5
+L2_REGULARIZATION = 1e-4
 SEED = 42
 
 tf.keras.utils.set_random_seed(SEED)
@@ -75,7 +76,8 @@ def build_model(model_name, num_classes):
 
     outputs = tf.keras.layers.Dense(
         num_classes,
-        activation="softmax"
+        activation="softmax",
+        kernel_regularizer=tf.keras.regularizers.l2(L2_REGULARIZATION)
     )(features)
 
     model = tf.keras.Model(inputs, outputs)
