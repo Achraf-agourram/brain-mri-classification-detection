@@ -1,0 +1,21 @@
+{
+    "model": "resnet50",
+    "class_names": [
+        "Glioma",
+        "Meningioma",
+        "No Tumor",
+        "Pituitary"
+    ],
+    "selected_phase": "fine_tuning",
+    "head_validation_loss": 0.26235347986221313,
+    "head_validation_accuracy": 0.8882352709770203,
+    "fine_tuning_validation_loss": 0.14760620892047882,
+    "fine_tuning_validation_accuracy": 0.9441176652908325,
+    "selected_validation_loss": 0.14760620892047882,
+    "selected_validation_accuracy": 0.9441176652908325,
+    "test_metrics": {
+        "accuracy": 0.9559118151664734,
+        "loss": 0.1415352076292038
+    },
+    "model_path": "/home/achraf/brain-mri-classification-detection/models/resnet50/best_model.keras"
+}
