@@ -1,7 +1,6 @@
 import argparse
 import json
 from pathlib import Path
-
 import pandas as pd
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -18,10 +17,10 @@ REPORT_DIR = ROOT_DIR / "reports"
 
 HEAD_EPOCHS = 10
 FINE_TUNE_EPOCHS = 8
-UNFREEZE_LAST_LAYERS = 15
+UNFREEZE_LAST_LAYERS = 30
 INITIAL_LEARNING_RATE = 1e-3
 FINE_TUNE_LEARNING_RATE = 1e-5
-L2_REGULARIZATION = 1e-3
+L2_REGULARIZATION = 1e-4
 SEED = 42
 
 tf.keras.utils.set_random_seed(SEED)
@@ -73,7 +72,7 @@ def build_model(model_name, num_classes):
     inputs = tf.keras.Input(shape=(*IMAGE_SIZE, 3))
     features = base_model(inputs, training=False)
     features = tf.keras.layers.GlobalAveragePooling2D()(features)
-    features = tf.keras.layers.Dropout(0.4)(features)
+    features = tf.keras.layers.Dropout(0.3)(features)
 
     outputs = tf.keras.layers.Dense(
         num_classes,
