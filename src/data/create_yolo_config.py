@@ -100,9 +100,15 @@ def validate_record(row):
                 "label_path": "",
                 "folder_class": folder_class,
                 "detection_class": "background",
+                "detection_classes": [],
                 "object_count": 0,
+                "class_counts": {
+                    class_name: 0
+                    for class_name in ANNOTATION_CLASSES.values()
+                },
                 "annotation_status": "negative_background_image",
             }, None
+
         return None, "missing_tumor_annotation"
 
     try:
@@ -117,9 +123,15 @@ def validate_record(row):
                 "label_path": str(label_path.resolve()),
                 "folder_class": folder_class,
                 "detection_class": "background",
+                "detection_classes": [],
                 "object_count": 0,
+                "class_counts": {
+                    class_name: 0
+                    for class_name in ANNOTATION_CLASSES.values()
+                },
                 "annotation_status": "negative_background_image",
             }, None
+
         return None, "empty_annotation_for_tumor_image"
 
     if folder_class == NO_TUMOR_CLASS:
@@ -129,22 +141,32 @@ def validate_record(row):
         return None, "unknown_folder_class"
 
     class_ids = {item["class_id"] for item in objects}
+    detection_classes = sorted(
+        ANNOTATION_CLASSES[class_id]
+        for class_id in class_ids
+    )
 
-    if len(class_ids) > 1:
-        return None, "multiple_detection_classes_in_one_image"
-
-    detection_class_id = next(iter(class_ids))
     expected_class_id = CLASS_TO_ID[folder_class]
 
-    if detection_class_id != expected_class_id:
+    if expected_class_id not in class_ids:
         return None, "folder_annotation_class_mismatch"
+
+    class_counts = {
+        class_name: sum(
+            item["class_id"] == class_id
+            for item in objects
+        )
+        for class_id, class_name in ANNOTATION_CLASSES.items()
+    }
 
     return {
         "image_path": str(image_path.resolve()),
         "label_path": str(label_path.resolve()),
         "folder_class": folder_class,
-        "detection_class": ANNOTATION_CLASSES[detection_class_id],
+        "detection_class": ", ".join(detection_classes),
+        "detection_classes": detection_classes,
         "object_count": len(objects),
+        "class_counts": class_counts,
         "annotation_status": "valid_tumor_boxes",
     }, None
 
