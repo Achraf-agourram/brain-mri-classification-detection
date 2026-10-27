@@ -228,7 +228,9 @@ def create_yolo_config():
                 "label_path",
                 "folder_class",
                 "detection_class",
+                "detection_classes",
                 "object_count",
+                "class_counts",
                 "annotation_status",
                 "split",
             ])
