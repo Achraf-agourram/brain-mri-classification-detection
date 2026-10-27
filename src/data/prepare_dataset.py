@@ -296,7 +296,6 @@ def write_splits(splits, orphan_labels, dropped_records):
 
     for split_name, records in splits.items():
         csv_path = OUTPUT_DIR / f"{split_name}.csv"
-        txt_path = OUTPUT_DIR / f"{split_name}.txt"
         split_rows = []
 
         for record in records:
