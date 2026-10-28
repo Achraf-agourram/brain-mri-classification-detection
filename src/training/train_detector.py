@@ -55,7 +55,7 @@ def train_detector():
     )
 
     best_model_path = REPORT_DIR / "yolov8n_brain_mri" / "weights" / "best.pt"
-    models_dir = ROOT_DIR / "models"
+    models_dir = ROOT_DIR / "models" / "detection"
     models_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(best_model_path, models_dir / "best.pt")
 
