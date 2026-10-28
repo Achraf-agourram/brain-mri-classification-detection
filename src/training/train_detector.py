@@ -25,3 +25,38 @@ def train_detector():
         )
 
     model = YOLO("yolov8n.pt")
+
+    return model.train(
+        data=str(data_yaml),
+        epochs=50,
+        imgsz=640,
+        batch=10,
+        patience=12,
+        workers=4,
+        pretrained=True,
+        cache=False,
+        seed=42,
+        deterministic=True,
+        project=str(REPORT_DIR),
+        name="yolov8n_brain_mri",
+        exist_ok=True,
+        plots=True,
+        save=True,
+        fliplr=0.5,
+        flipud=0.0,
+        degrees=5.0,
+        translate=0.05,
+        scale=0.10,
+        shear=0.0,
+        perspective=0.0,
+        hsv_h=0.0,
+        hsv_s=0.0,
+        hsv_v=0.0,
+        mosaic=0.0,
+        mixup=0.0,
+        copy_paste=0.0,
+    )
+
+
+if __name__ == "__main__":
+    train_detector()
