@@ -1,0 +1,8 @@
+streamlit>=1.32
+tensorflow>=2.15
+ultralytics>=8.2
+Pillow>=10
+numpy>=1.26
+pandas>=2.0
+matplotlib>=3.8
+PyYAML>=6.0
