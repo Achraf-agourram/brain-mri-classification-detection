@@ -30,7 +30,7 @@ def train_detector():
         data=str(data_yaml),
         epochs=50,
         imgsz=640,
-        batch=10,
+        batch=4,
         patience=12,
         workers=4,
         pretrained=True,
