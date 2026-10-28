@@ -35,7 +35,6 @@ def train_detector():
         patience=10,
         workers=8,
         pretrained=True,
-        cache=False,
         seed=42,
         deterministic=True,
         project=str(REPORT_DIR),
