@@ -45,7 +45,6 @@ def train_detector():
         fliplr=0.5,
         flipud=0.5,
         mosaic=1.0,
-        fliplr=0.5,
         hsv_h=0.015,
         hsv_s=0.7,
         hsv_v=0.4,
