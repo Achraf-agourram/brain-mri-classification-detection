@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from ultralytics import YOLO
 from src.data.create_yolo_config import ANNOTATION_CLASSES, create_yolo_config
+import shutil
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 REPORT_DIR = ROOT_DIR / "reports" / "detection"
@@ -26,7 +27,7 @@ def train_detector():
 
     model = YOLO("yolov8n.pt")
 
-    return model.train(
+    results =  model.train(
         data=str(data_yaml),
         epochs=50,
         imgsz=640,
@@ -52,6 +53,13 @@ def train_detector():
         scale=0.5,
         device=0
     )
+
+    best_model_path = REPORT_DIR / "yolov8n_brain_mri" / "weights" / "best.pt"
+    models_dir = ROOT_DIR / "models"
+    models_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(best_model_path, models_dir / "best.pt")
+
+    return results
 
 
 if __name__ == "__main__":
