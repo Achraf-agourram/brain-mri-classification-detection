@@ -53,7 +53,9 @@ def train_detector():
         degrees=10.0,
         translate=0.1,
         scale=0.5,
-        device=0
+        device=0,
+        cache="ram",
+        cos_lr=True,
     )
 
     best_model_path = REPORT_DIR / "yolov8n_brain_mri" / "weights" / "best.pt"
