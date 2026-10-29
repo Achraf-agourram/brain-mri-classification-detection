@@ -31,10 +31,10 @@ def train_detector():
         data=str(data_yaml),
         epochs=50,
         imgsz=640,
-        batch=-1,
+        batch=16,
         patience=10,
-        workers=8,
         pretrained=True,
+        cache=False,
         seed=42,
         deterministic=True,
         project=str(REPORT_DIR),
@@ -47,13 +47,11 @@ def train_detector():
         mosaic=1.0,
         hsv_h=0.015,
         hsv_s=0.7,
-        cos_lr=True,
         hsv_v=0.4,
         degrees=10.0,
         translate=0.1,
         scale=0.5,
-        device=0,
-        cache="ram",
+        device=0
     )
 
     best_model_path = REPORT_DIR / "yolov8n_brain_mri" / "weights" / "best.pt"
