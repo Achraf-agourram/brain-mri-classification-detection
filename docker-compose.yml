@@ -1,0 +1,58 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    volumes:
+      - type: bind
+        source: ./models
+        target: /app/models
+        read_only: true
+      - type: bind
+        source: ./reports
+        target: /app/reports
+        read_only: true
+    restart: unless-stopped
+
+  airflow:
+    profiles:
+      - airflow
+    build:
+      context: .
+      dockerfile: docker/airflow.Dockerfile
+    command: airflow standalone
+    environment:
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/project/airflow/dags
+      YOLO_DEVICE: "${YOLO_DEVICE:-cpu}"
+    ports:
+      - "8080:8080"
+    volumes:
+      - airflow-home:/opt/airflow
+      - type: bind
+        source: ./airflow/dags
+        target: /opt/project/airflow/dags
+        read_only: true
+      - type: bind
+        source: ./src
+        target: /opt/project/src
+        read_only: true
+      - type: bind
+        source: ./configs
+        target: /opt/project/configs
+        read_only: true
+      - type: bind
+        source: ./data
+        target: /opt/project/data
+      - type: bind
+        source: ./models
+        target: /opt/project/models
+      - type: bind
+        source: ./reports
+        target: /opt/project/reports
+    restart: unless-stopped
+
+volumes:
+  airflow-home:

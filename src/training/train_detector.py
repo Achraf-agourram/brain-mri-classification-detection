@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 from ultralytics import YOLO
 from src.data.create_yolo_config import ANNOTATION_CLASSES, create_yolo_config
@@ -51,7 +52,7 @@ def train_detector():
         degrees=10.0,
         translate=0.1,
         scale=0.5,
-        device=0
+        device=os.environ.get("YOLO_DEVICE", "0")
     )
 
     best_model_path = REPORT_DIR / "yolov8n_brain_mri" / "weights" / "best.pt"

@@ -21,15 +21,15 @@ with DAG(
 
     prepare_dataset = BashOperator(task_id="prepare_dataset", bash_command=(f"cd {PROJECT_DIR} && " "python -m src.data.prepare_dataset"))
 
-    train_classifier_mobilenet = BashOperator(task_id="train_classifier", bash_command=(f"cd {PROJECT_DIR} && " "python -m src.training.train_classifier --model mobilenetv2"))
+    train_classifier_mobilenet = BashOperator(task_id="train_classifier_mobilenet", bash_command=(f"cd {PROJECT_DIR} && " "python -m src.training.train_classifier --model mobilenetv2"))
 
-    train_classifier_resnet = BashOperator(task_id="train_classifier", bash_command=(f"cd {PROJECT_DIR} && " "python -m src.training.train_classifier --model resnet50"))
+    train_classifier_resnet = BashOperator(task_id="train_classifier_resnet", bash_command=(f"cd {PROJECT_DIR} && " "python -m src.training.train_classifier --model resnet50"))
 
     create_yolo_config = BashOperator(task_id="create_yolo_config", bash_command=(f"cd {PROJECT_DIR} && " "python -m src.data.create_yolo_config"))
 
     train_detector = BashOperator(task_id="train_detector", bash_command=(f"cd {PROJECT_DIR} && " "python -m src.training.train_detector"))
 
-    evaluate_detector = BashOperator(task_id="evaluate_detector", bash_command=(f"cd {PROJECT_DIR} && " "python -m src.models.evaluate_detector"))
+    evaluate_detector = BashOperator(task_id="evaluate_detector", bash_command=(f"cd {PROJECT_DIR} && " "python -m src.evaluation.evaluate_detector"))
 
     (
         correct_class_folders
